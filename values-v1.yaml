@@ -1,0 +1,36 @@
+kafka:
+  internal:
+    name: plain
+    port: 9092
+    tls: false
+  external:
+    name: external
+    port: 9094
+    type: cluster-ip
+    tls: false
+    advertisedHost: 1.1.1.1
+  broker:
+    replicaCount: 3
+    size: 1Gi
+  config:
+    offsets.topic.replication.factor: 3
+    transaction.state.log.replication.factor: 3
+    transaction.state.log.min.isr: 2
+    default.replication.factor: 3
+    min.insync.replicas: 2
+console:
+  enabled: true
+  console:
+    config:
+      kafka:
+        brokers:
+          - kafka-dev-kafka-bootstrap.strimzi.svc.cluster.local:9092
+        clientId: redpanda-console
+        sasl:
+          enabled: false
+        tls:
+          enabled: false
+        schemaRegistry:
+          enabled: false
+  secret:
+    create: false

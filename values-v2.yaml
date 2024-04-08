@@ -1,0 +1,78 @@
+kafka:
+  authentication:
+    type: simple
+  internal:
+    authentication:
+      type: scram-sha-512
+  external:
+    name: external
+    port: 9094
+    type: cluster-ip
+    tls: false
+    advertisedHost: 1.1.1.1
+    authentication:
+      type: scram-sha-512
+  broker:
+    replicaCount: 3
+    size: 8Gi
+  users:
+    - name: kafka-admin-user
+      authentication:
+        type: scram-sha-512
+      authorization:
+        type: simple
+        acls:
+          - resource:
+              type: "topic"
+              name: "*"
+              patternType: literal
+            operations:
+              - All
+            host: "*"
+          - resource:
+              type: "group"
+              name: "*"
+              patternType: literal
+            operations:
+              - All
+            host: "*"
+          - resource:
+              type: "cluster"
+              name: "*"
+              patternType: literal
+            operations:
+              - All
+            host: "*"
+          - resource:
+              type: "transactionalId"
+              name: "*"
+              patternType: literal
+            operations:
+              - All
+            host: "*"
+  topics:
+    - name: strimzi-topic
+      partitions: 10
+      replicas: 3
+      retentionMs: 666666
+      segmentBytes: 1073741824
+console:
+  enabled: true
+  console:
+    config:
+      kafka:
+        brokers:
+          - kafka-dev-kafka-bootstrap.strimzi.svc.cluster.local:9092
+        clientId: redpanda-console
+        sasl:
+          enabled: true
+          mechanism: SCRAM-SHA-512
+          username: kafka-admin-user
+        tls:
+          enabled: false
+        schemaRegistry:
+          enabled: false
+  secret:
+    create: true
+    kafka:
+      saslPassword: "...."

@@ -1,0 +1,68 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  labels:
+    strimzi.io/cluster: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.kafka.broker.replicaCount }}
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ .Values.kafka.broker.size }}
+        deleteClaim: false
+---
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: {{ .Values.kafka.version }}
+    metadataVersion: 3.7-IV4
+    listeners:
+      - name: {{ .Values.kafka.internal.name }}
+        port: {{ .Values.kafka.internal.port }}
+        type: internal
+        tls: {{ .Values.kafka.internal.tls }}
+        {{ if and .Values.kafka.internal.authentication .Values.kafka.internal.authentication.type}}
+        authentication:
+          type: {{ .Values.kafka.internal.authentication.type }}
+        {{ end }}
+      {{ if .Values.kafka.external }}
+      - name: {{ .Values.kafka.external.name }}
+        port:  {{ .Values.kafka.external.port }}
+        type: {{ .Values.kafka.external.type }}
+        tls: {{ .Values.kafka.external.tls }}
+        {{ if and .Values.kafka.external.authentication .Values.kafka.external.authentication.type}}
+        authentication:
+          type: {{ .Values.kafka.external.authentication.type }}
+        {{ end }}
+        configuration:
+          brokers:
+            {{ $aHost := .Values.kafka.external.advertisedHost | toString}}
+            {{- range $replicaIndex := untilStep 0 (.Values.kafka.broker.replicaCount|int) 1 }}
+            {{- $aPort := add $replicaIndex 31092 }}
+            - broker: {{ $replicaIndex }}
+              advertisedHost: {{ $aHost }}
+              advertisedPort: {{ $aPort }}
+            {{- end }}
+       {{ end }}
+    {{ if and .Values.kafka.authentication .Values.kafka.authentication.type }}
+    authorization:
+      type: {{ .Values.kafka.authentication.type }}
+    {{ end }}
+    config: {{ toYaml .Values.kafka.config | nindent 6 }}
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  kafkaExporter: {}
